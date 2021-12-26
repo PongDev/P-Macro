@@ -8,6 +8,7 @@ namespace P_Macro
 {
     class SystemConfig
     {
-        public const string Version = "Alpha 1.0.1";
+        public const string Version = "Alpha 1.0.2";
+        public const string MacroSavePath = @".\P Macro.save";
     }
 }

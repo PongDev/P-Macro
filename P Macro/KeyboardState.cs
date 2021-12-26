@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace P_Macro
 {
@@ -91,7 +92,8 @@ namespace P_Macro
         {
             Reset = 0,
             Mouse = 1,
-            LRSHIFTCONTROLMENU = 2
+            LRSHIFTCONTROLMENU = 2,
+            KEY255 = 4
         }
 
         private static Configuration_Define Mode = Configuration_Define.UPDATE_BY_GetAsyncKeyState;
@@ -103,7 +105,7 @@ namespace P_Macro
         {
             while(workState)
             {
-                if (Mode==Configuration_Define.UPDATE_BY_GetAsyncKeyState)
+                if (Mode == Configuration_Define.UPDATE_BY_GetAsyncKeyState)
                 {
                     updateKeyStateByGetAsyncKeyState();
                     KeyboardStateCallback?.Invoke();
@@ -114,7 +116,7 @@ namespace P_Macro
 
         private static void updateKeyStateByGetAsyncKeyState()
         {
-            for(int c=0; c<256; c++)
+            for(int c = 0; c < 256; c++)
             {
                 bool keyboardState = ((GetAsyncKeyState(c) & (1 << 15)) == (1 << 15));
 
@@ -154,7 +156,7 @@ namespace P_Macro
             else
             {
                 #region Skip Mouse
-                if ((key&vkSkipKeyboardState_Define.Mouse)==vkSkipKeyboardState_Define.Mouse)
+                if ((key & vkSkipKeyboardState_Define.Mouse) == vkSkipKeyboardState_Define.Mouse)
                 {
                     vkSkipKeyboardState[0x01] = true;
                     vkSkipKeyboardState[0x02] = true;
@@ -165,7 +167,7 @@ namespace P_Macro
                 #endregion
 
                 #region Skip LRSHIFTCONTROLMENU
-                if ((key&vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU)==vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU)
+                if ((key & vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU) == vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU)
                 {
                     vkSkipKeyboardState[0xA0] = true;
                     vkSkipKeyboardState[0xA1] = true;
@@ -175,12 +177,55 @@ namespace P_Macro
                     vkSkipKeyboardState[0xA5] = true;
                 }
                 #endregion
+
+                #region Skip KEY255
+                if ((key & vkSkipKeyboardState_Define.KEY255) == vkSkipKeyboardState_Define.KEY255)
+                {
+                    vkSkipKeyboardState[0xFF] = true;
+                }
+                #endregion
             }
         }
 
         public static bool getvkKeyboardState(int idx)
         {
             return vkKeyboardState[idx];
+        }
+
+        public static string KeyboardStateToText(bool[] keyboardState)
+        {
+            string strKeyboardState = "";
+
+            for (int c = 0; c < 256; c++)
+            {
+                if (keyboardState[c])
+                {
+                    if (strKeyboardState.Length != 0)
+                        strKeyboardState += " + ";
+                    strKeyboardState += (Keys)c;
+                }
+            }
+            return strKeyboardState;
+        }
+
+        public static string vkKeyboardStateToText()
+        {
+            return KeyboardStateToText(vkKeyboardState);
+        }
+
+        public static bool isNovkKeyPress()
+        {
+            bool noKeyPress = true;
+
+            for(int c=0; c<256; c++)
+            {
+                if (vkKeyboardState[c])
+                {
+                    noKeyPress = false;
+                    break;
+                }
+            }
+            return noKeyPress;
         }
         #endregion
     }
