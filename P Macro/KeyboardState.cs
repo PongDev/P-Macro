@@ -179,6 +179,43 @@ namespace P_Macro
                 index += sizeof(uint);
             }
         }
+
+        public class recordOptionClass
+        {
+            public int delayBeforeActivate = 0;
+            public bool isLoopUntilBreakKeyPress = false;
+            public bool[] breakKeyboardState = new bool[256];
+            public int loopAmount = 1;
+
+            public byte[] ToByteArray()
+            {
+                List<byte> bytelist = new List<byte>();
+
+                bytelist.AddRange(BitConverter.GetBytes(0));
+                bytelist.AddRange(BitConverter.GetBytes(delayBeforeActivate));
+                bytelist.AddRange(BitConverter.GetBytes(isLoopUntilBreakKeyPress));
+                for (int c = 0; c < breakKeyboardState.Length; c++)
+                    bytelist.AddRange(BitConverter.GetBytes(breakKeyboardState[c]));
+                bytelist.AddRange(BitConverter.GetBytes(loopAmount));
+                byte[] bytelistsize = BitConverter.GetBytes(bytelist.Count - sizeof(int));
+                for (int c = 0; c < bytelistsize.Length; c++)
+                    bytelist[c] = bytelistsize[c];
+                return bytelist.ToArray();
+            }
+
+            public void FromByteArray(byte[] bytearray)
+            {
+                int index = sizeof(int);
+
+                delayBeforeActivate = BitConverter.ToInt32(bytearray, index);
+                index += sizeof(int);
+                isLoopUntilBreakKeyPress = BitConverter.ToBoolean(bytearray, index++);
+                for (int c = 0; c < 256; c++)
+                    breakKeyboardState[c] = BitConverter.ToBoolean(bytearray, index++);
+                loopAmount = BitConverter.ToInt32(bytearray, index);
+                index += sizeof(int);
+            }
+        }
         #endregion
 
         #region DllImport
@@ -650,7 +687,23 @@ namespace P_Macro
             }
         }
 
-        public static uint VKtoVSC(uint vk)
+        public static void playMacroRecord(List<recordStateClass> recordList,recordOptionClass option)
+        {
+            Thread.Sleep(option.delayBeforeActivate);
+
+            if (option.isLoopUntilBreakKeyPress)
+            {
+                while (true)
+                    playMacroRecord(recordList);
+            }
+            else
+            {
+                for (int c = 0; c < option.loopAmount; c++)
+                    playMacroRecord(recordList);
+            }
+        }
+
+            public static uint VKtoVSC(uint vk)
         {
             return MapVirtualKey(MAPVK_VK_TO_VSC, vk);
         }

@@ -42,6 +42,7 @@ namespace P_Macro
         private Dictionary<int, int> VKCodeToKeyboardStateIndex = new Dictionary<int, int>();
         private Dictionary<int, int> allowKeyboardAction = new Dictionary<int, int>();
         private Dictionary<int, int> KeyboardModeToKeyboardActionIndex = new Dictionary<int, int>();
+        private Dictionary<int, int> MouseModeToMouseActionIndex = new Dictionary<int, int>();
         private Dictionary<string, int> MouseActionToMouseMode = new Dictionary<string, int>();
 
         #region kbd_event dwFlags
@@ -80,6 +81,8 @@ namespace P_Macro
         private const int RECORD_MODE_MOUSEMOVE = 4;
         private const int RECORD_MODE_MOUSEWHEEL = 5;
         private const int RECORD_MODE_MOUSEHWHEEL = 6;
+        private const int RECORD_MODE_MBUTTONDOWN = 7;
+        private const int RECORD_MODE_MBUTTONUP = 8;
         #endregion
 
         public void InitializeExtraComponent()
@@ -305,15 +308,24 @@ namespace P_Macro
             KeyboardModeToKeyboardActionIndex.Add(RECORD_MODE_KEYDOWN, 0);
             KeyboardModeToKeyboardActionIndex.Add(RECORD_MODE_KEYUP, 1);
 
-            MouseActionToMouseMode.Add("LKEYDOWN", MOUSEEVENTF_LEFTDOWN);
-            MouseActionToMouseMode.Add("LKEYUP", MOUSEEVENTF_LEFTUP);
-            MouseActionToMouseMode.Add("RKEYDOWN", MOUSEEVENTF_RIGHTDOWN);
-            MouseActionToMouseMode.Add("RKEYUP", MOUSEEVENTF_RIGHTUP);
-            MouseActionToMouseMode.Add("MOVE", MOUSEEVENTF_MOVE);
-            MouseActionToMouseMode.Add("MOUSE WHEEL", MOUSEEVENTF_WHEEL);
-            MouseActionToMouseMode.Add("MOUSEHWHEEL", MOUSEEVENTF_HWHEEL);
-            MouseActionToMouseMode.Add("MIDDLEDOWN", MOUSEEVENTF_MIDDLEDOWN);
-            MouseActionToMouseMode.Add("MIDDLEUP", MOUSEEVENTF_MIDDLEUP);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_LKEYDOWN, 0);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_LKEYUP, 1);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_RKEYDOWN, 2);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_RKEYUP, 3);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_MOUSEMOVE, 4);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_MOUSEWHEEL, 5);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_MOUSEHWHEEL, 6);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_MBUTTONDOWN, 7);
+            MouseModeToMouseActionIndex.Add(RECORD_MODE_MBUTTONUP, 8);
+            MouseActionToMouseMode.Add("LKEYDOWN", RECORD_MODE_LKEYDOWN);
+            MouseActionToMouseMode.Add("LKEYUP", RECORD_MODE_LKEYUP);
+            MouseActionToMouseMode.Add("RKEYDOWN", RECORD_MODE_RKEYDOWN);
+            MouseActionToMouseMode.Add("RKEYUP", RECORD_MODE_RKEYUP);
+            MouseActionToMouseMode.Add("MOVE", RECORD_MODE_MOUSEMOVE);
+            MouseActionToMouseMode.Add("MOUSE WHEEL", RECORD_MODE_MOUSEWHEEL);
+            MouseActionToMouseMode.Add("MOUSEHWHEEL", RECORD_MODE_MOUSEHWHEEL);
+            MouseActionToMouseMode.Add("MIDDLEDOWN", RECORD_MODE_MBUTTONDOWN);
+            MouseActionToMouseMode.Add("MIDDLEUP", RECORD_MODE_MBUTTONUP);
         }
 
         public MacroRecordDataForm(KeyboardState.recordStateClass recordDataInput)
@@ -332,6 +344,7 @@ namespace P_Macro
                     KeyboardAction.SelectedIndex = KeyboardModeToKeyboardActionIndex[recordData.mode];
                     break;
                 case 2:
+                    MouseAction.SelectedIndex = MouseModeToMouseActionIndex[recordData.mode];
                     break;
             }
         }
@@ -370,6 +383,13 @@ namespace P_Macro
                 case "Mouse":
                     lbMouseAction.Visible = true;
                     MouseAction.Visible = true;
+                    if (recordData.mode == RECORD_MODE_MOUSEMOVE)
+                    {
+                        tbMouseX.Text = recordData.x.ToString();
+                        tbMouseY.Text = recordData.y.ToString();
+                    }
+                    if (recordData.mode == RECORD_MODE_MOUSEWHEEL || recordData.mode == RECORD_MODE_MOUSEHWHEEL)
+                        tbMouseWheelValue.Text = recordData.value.ToString();
                     break;
             }
         }
@@ -395,7 +415,7 @@ namespace P_Macro
                 case "Keyboard":
                     try
                     {
-                        if (KeyboardKey.SelectedIndex <= 0 || KeyboardAction.SelectedIndex <= 0)
+                        if (KeyboardKey.SelectedIndex < 0 || KeyboardAction.SelectedIndex < 0)
                             throw new Exception();
                         recordData.type = RECORD_TYPE_KEYBOARD;
                         recordData.vkCode = (uint)allowKeyboardState[KeyboardKey.SelectedIndex];
@@ -444,6 +464,17 @@ namespace P_Macro
                                 return;
                             }
                             break;
+                        case "MOUSEHWHEEL":
+                            try
+                            {
+                                recordData.value = Convert.ToInt32(tbMouseWheelValue.Text);
+                            }
+                            catch
+                            {
+                                MessageBox.Show("[Error] Invalid MOUSEHWHEEL Value Format", "Error");
+                                return;
+                            }
+                            break;
                     }
                     break;
             }
@@ -458,7 +489,7 @@ namespace P_Macro
         private void MouseAction_SelectedIndexChanged(object sender, EventArgs e)
         {
             bool isMouseActionEqualMOVE = MouseAction.Text == "MOVE";
-            bool isMouseActionEqualMOUSEWHEEL = MouseAction.Text == "MOUSE WHEEL";
+            bool isMouseActionEqualMOUSEWHEEL = MouseAction.Text == "MOUSE WHEEL" || MouseAction.Text == "MOUSEHWHEEL";
             //bool isMouseActionEqualMOUSEHWHEEL = MouseAction.Text == "MOUSEHWHEEL";
 
             lbMouseX.Visible = isMouseActionEqualMOVE;

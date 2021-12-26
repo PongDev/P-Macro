@@ -17,11 +17,14 @@ namespace P_Macro
     {
         private List<KeyboardMacro> keyboardMacroList = new List<KeyboardMacro>();
         private List<KeyboardState.recordStateClass> recordMacroList = new List<KeyboardState.recordStateClass>();
+        private KeyboardState.recordOptionClass recordOption = new KeyboardState.recordOptionClass();
         private bool updatelbKeyPress = true;
         private int listBoxMacroListPreviousIndex = -1;
         private int listBoxMacroRecordDataPreviousIndex = -1;
         private int listBoxMacroRecordListPreviousIndex = -1;
         private bool run = true;
+        private KeyboardMacro playMacroRecordThreadBreakMacro;
+        private Thread playMacroRecordThread;
 
         public MainForm(string[] args)
         {
@@ -30,6 +33,7 @@ namespace P_Macro
             KeyboardState.SetvkSkipKeyboardState(KeyboardState.vkSkipKeyboardState_Define.Mouse | KeyboardState.vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU | KeyboardState.vkSkipKeyboardState_Define.KEY255);
             KeyboardState.Init();
             KeyboardState.SetKeyboardStateCallback(KeyboardStateCallbackFunction);
+            bgWorkerUpdateMousePosition.RunWorkerAsync();
             btnLoadMacro_Click(null, null);
             btnLoadMacroRecordList_Click(null, null);
             cbRunOnStartup.Checked = runOnStartup();
@@ -73,6 +77,13 @@ namespace P_Macro
                 macro.updatevkKeyboardState();
                 if (KeyboardState.isNovkKeyPress() && macro.releasevkKeyboardState)
                     macro.executeCommand();
+            }
+
+            if (recordOption.isLoopUntilBreakKeyPress && playMacroRecordThread != null && playMacroRecordThread.IsAlive && playMacroRecordThreadBreakMacro != null)
+            {
+                playMacroRecordThreadBreakMacro.updatevkKeyboardState();
+                if (KeyboardState.isNovkKeyPress() && playMacroRecordThreadBreakMacro.releasevkKeyboardState)
+                    playMacroRecordThread.Abort();
             }
         }
 
@@ -380,9 +391,22 @@ namespace P_Macro
 
         private void btnPlayMacroRecord_Click(object sender, EventArgs e)
         {
-            Thread playMacroRecordThread = new Thread(() => KeyboardState.playMacroRecord(recordMacroList));
+            //Thread playMacroRecordThread = new Thread(() => KeyboardState.playMacroRecord(recordMacroList));
+            //Thread playMacroRecordThread = new Thread(() => KeyboardState.playMacroRecord(recordMacroList, recordOption));
+            playMacroRecordThread = new Thread(() => KeyboardState.playMacroRecord(recordMacroList, recordOption));
 
+            if (recordOption.isLoopUntilBreakKeyPress)
+                playMacroRecordThreadBreakMacro = new KeyboardMacro(recordOption.breakKeyboardState, "", false);
             playMacroRecordThread.Start();
+        }
+
+        private void btnPlayMacroRecordOption_Click(object sender, EventArgs e)
+        {
+            PlayMacroRecordOption playMacroRecordOption = new PlayMacroRecordOption(recordOption);
+
+            if (playMacroRecordOption.ShowDialog() == DialogResult.OK)
+                recordOption = playMacroRecordOption.option;
+            playMacroRecordOption.Dispose();
         }
 
         private void listBoxMacroRecordData_SelectedIndexChanged(object sender, EventArgs e)
@@ -411,8 +435,11 @@ namespace P_Macro
 
             if (macroRecordData.ShowDialog() == DialogResult.OK)
             {
-                recordMacroList.Insert(listBoxMacroRecordData.SelectedIndex + 1, macroRecordData.recordData);
+                int insertIndex = listBoxMacroRecordData.SelectedIndex + 1;
+
+                recordMacroList.Insert(insertIndex, macroRecordData.recordData);
                 updateListBoxMacroRecordData();
+                listBoxMacroRecordData.SelectedIndex = insertIndex;
             }
             macroRecordData.Dispose();
         }
@@ -472,6 +499,11 @@ namespace P_Macro
                 {
                     FileStream fs = File.Open(SystemConfig.MacroRecordSavePath + saveRecordMacroForm.saveName + SystemConfig.FileExt, FileMode.Create);
 
+                    {
+                        byte[] bytearray = recordOption.ToByteArray();
+
+                        fs.Write(bytearray, 0, bytearray.Length);
+                    }
                     foreach (KeyboardState.recordStateClass data in recordMacroList)
                     {
                         byte[] bytearray = data.ToByteArray();
@@ -543,12 +575,20 @@ namespace P_Macro
                     recordMacroList.Clear();
                     try
                     {
+                        {
+                            int dataSize = BitConverter.ToInt32(bytearray, index);
+                            byte[] data = new byte[sizeof(int) + dataSize];
+
+                            Array.Copy(bytearray, index, data, 0, data.Length);
+                            recordOption.FromByteArray(data);
+                            index += sizeof(int) + dataSize;
+                        }
                         while (index < bytearray.Length)
                         {
                             int dataSize = BitConverter.ToInt32(bytearray, index);
                             byte[] data = new byte[sizeof(int) + dataSize];
 
-                            Array.Copy(bytearray, index, data, 0, dataSize);
+                            Array.Copy(bytearray, index, data, 0, data.Length);
                             recordMacroList.Add(new KeyboardState.recordStateClass(data));
                             index += sizeof(int) + dataSize;
                         }
@@ -565,6 +605,21 @@ namespace P_Macro
                 updateListBoxMacroRecordData();
             }
             listBoxMacroRecordListPreviousIndex = listBoxMacroRecordList.SelectedIndex;
+        }
+
+        private void bgWorkerUpdateMousePosition_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            lbMousePositionX.Text = "X: " + Cursor.Position.X;
+            lbMousePositionY.Text = "Y: " + Cursor.Position.Y;
+        }
+
+        private void bgWorkerUpdateMousePosition_DoWork(object sender, DoWorkEventArgs e)
+        {
+            while (true)
+            {
+                bgWorkerUpdateMousePosition.ReportProgress(0);
+                Thread.Sleep(50);
+            }
         }
     }
 }
