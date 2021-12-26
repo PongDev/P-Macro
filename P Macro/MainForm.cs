@@ -16,10 +16,11 @@ namespace P_Macro
     public partial class MainForm : Form
     {
         private List<KeyboardMacro> keyboardMacroList = new List<KeyboardMacro>();
-        private List<KeyboardState.recordStateStruct> recordMacroList = new List<KeyboardState.recordStateStruct>();
+        private List<KeyboardState.recordStateClass> recordMacroList = new List<KeyboardState.recordStateClass>();
         private bool updatelbKeyPress = true;
         private int listBoxMacroListPreviousIndex = -1;
         private int listBoxMacroRecordDataPreviousIndex = -1;
+        private int listBoxMacroRecordListPreviousIndex = -1;
         private bool run = true;
 
         public MainForm(string[] args)
@@ -30,6 +31,7 @@ namespace P_Macro
             KeyboardState.Init();
             KeyboardState.SetKeyboardStateCallback(KeyboardStateCallbackFunction);
             btnLoadMacro_Click(null, null);
+            btnLoadMacroRecordList_Click(null, null);
             cbRunOnStartup.Checked = runOnStartup();
             if (args.Contains("-bg"))
             {
@@ -79,7 +81,7 @@ namespace P_Macro
             updatelbKeyPress = false;
             AddMacroForm addMacroForm = new AddMacroForm();
 
-            bool isKeydown = false, showAddMacroFormDialog = true;
+            bool isKeydown = false, showAddMacroFormDialog = true, isExist = false;
 
             for (int c = 0; c < 256; c++)
             {
@@ -87,13 +89,22 @@ namespace P_Macro
                 if (addMacroForm.keyboardState[c])
                     isKeydown = true;
             }
-            if (!isKeydown)
+            foreach (KeyboardMacro keyboardMacro in keyboardMacroList)
+            {
+                if (addMacroForm.keyboardState.SequenceEqual(keyboardMacro.vkKeyboardState))
+                {
+                    isExist = true;
+                    MessageBox.Show("[Error] Shortcut Macro Exist", "Error");
+                    break;
+                }
+            }
+            if (!isExist && !isKeydown)
             {
                 DialogResult result = MessageBox.Show("[Warning] Add Macro To No Key Press?", "Warning", MessageBoxButtons.OKCancel);
                 if (result == DialogResult.Cancel)
                     showAddMacroFormDialog = false;
             }
-            if (showAddMacroFormDialog && addMacroForm.ShowDialog() == DialogResult.OK)
+            if (!isExist && showAddMacroFormDialog && addMacroForm.ShowDialog() == DialogResult.OK)
             {
                 keyboardMacroList.Add(new KeyboardMacro(addMacroForm.keyboardState, addMacroForm.Command, addMacroForm.hideCmd));
                 updateListBoxMacroList();
@@ -155,39 +166,54 @@ namespace P_Macro
                 keyboardMacroList.RemoveAt(listBoxMacroList.SelectedIndex);
                 listBoxMacroList.Items.RemoveAt(listBoxMacroList.SelectedIndex);
                 clearMacroProperty();
+                cbMacroPropertyHideCmd.Enabled = false;
+                tbMacroPropertyCommand.Enabled = false;
+                btnMacroPropertyUpdate.Enabled = false;
+                btnMacroPropertyRemove.Enabled = false;
             }
         }
 
         private void btnSaveMacro_Click(object sender, EventArgs e)
         {
-            FileStream fs = File.Open(SystemConfig.MacroSavePath, FileMode.Create);
+            if (!Directory.Exists(SystemConfig.MacroShortcutSavePath))
+                Directory.CreateDirectory(SystemConfig.MacroShortcutSavePath);
+
+            DirectoryInfo directoryInfo = new DirectoryInfo(SystemConfig.MacroShortcutSavePath);
+
+            foreach (DirectoryInfo subDirectory in directoryInfo.GetDirectories())
+                subDirectory.Delete(true);
+            foreach (FileInfo fileInfo in directoryInfo.GetFiles())
+                fileInfo.Delete();
 
             foreach (KeyboardMacro macro in keyboardMacroList)
             {
+                FileStream fs = File.Open(SystemConfig.MacroShortcutSavePath + KeyboardState.KeyboardStateToText(macro.vkKeyboardState) + SystemConfig.FileExt, FileMode.Create);
                 byte[] bytearray = macro.ToByteArray();
 
                 fs.Write(bytearray, 0, bytearray.Length);
+                fs.Close();
             }
-            fs.Close();
         }
 
         private void btnLoadMacro_Click(object sender, EventArgs e)
         {
-            if (!File.Exists(SystemConfig.MacroSavePath)) return;
+            if (!Directory.Exists(SystemConfig.MacroShortcutSavePath))
+            {
+                keyboardMacroList.Clear();
+                updateListBoxMacroList();
+                return;
+            }
 
             keyboardMacroList.Clear();
-            byte[] bytearray = File.ReadAllBytes(SystemConfig.MacroSavePath);
-            int index = 0;
-
-            while (index < bytearray.Length)
+            foreach (string saveFilePath in Directory.GetFiles(SystemConfig.MacroShortcutSavePath))
             {
-                int dataLength = BitConverter.ToInt32(bytearray, index);
+                if (Path.GetExtension(saveFilePath) == SystemConfig.FileExt)
+                {
+                    byte[] bytearray = File.ReadAllBytes(saveFilePath);
 
-                byte[] macrobytedata = new byte[4 + dataLength];
-
-                Array.Copy(bytearray, index, macrobytedata, 0, 4 + dataLength);
-                keyboardMacroList.Add(new KeyboardMacro(macrobytedata));
-                index += 4 + dataLength;
+                    try { keyboardMacroList.Add(new KeyboardMacro(bytearray)); }
+                    catch { }
+                }
             }
             updateListBoxMacroList();
         }
@@ -242,7 +268,7 @@ namespace P_Macro
                 runOnStartup(false);
         }
 
-        List<string> macroRecordListTostringList(List<KeyboardState.recordStateStruct> list)
+        List<string> macroRecordListTostringList(List<KeyboardState.recordStateClass> list)
         {
             #region Record State Define
             const int RECORD_TYPE_DELAY = 0;
@@ -259,11 +285,13 @@ namespace P_Macro
             const int RECORD_MODE_MOUSEMOVE = 4;
             const int RECORD_MODE_MOUSEWHEEL = 5;
             const int RECORD_MODE_MOUSEHWHEEL = 6;
+            const int RECORD_MODE_MBUTTONDOWN = 7;
+            const int RECORD_MODE_MBUTTONUP = 8;
             #endregion
 
             List<string> stringList = new List<string>();
 
-            foreach (KeyboardState.recordStateStruct listdata in list)
+            foreach (KeyboardState.recordStateClass listdata in list)
             {
                 string listdatastring = "";
 
@@ -309,6 +337,12 @@ namespace P_Macro
                             case RECORD_MODE_MOUSEHWHEEL:
                                 listdatastring += "MOUSEHWHEEL " + listdata.value;
                                 break;
+                            case RECORD_MODE_MBUTTONDOWN:
+                                listdatastring += "MIDDLEDOWN";
+                                break;
+                            case RECORD_MODE_MBUTTONUP:
+                                listdatastring += "MIDDLEUP";
+                                break;
                         }
                         break;
                 }
@@ -317,10 +351,17 @@ namespace P_Macro
             return stringList;
         }
 
+        private void updateListBoxMacroRecordData()
+        {
+            listBoxMacroRecordData.Items.Clear();
+            listBoxMacroRecordData.Items.AddRange(macroRecordListTostringList(recordMacroList).ToArray());
+        }
+
         private void btnStartMacroRecord_Click(object sender, EventArgs e)
         {
             KeyboardState.resetRecord();
             listBoxMacroRecordData.Items.Clear();
+            KeyboardState.configRecord(cbRecordKeyboard.Checked, cbRecordMouse.Checked);
             KeyboardState.startRecord();
 
             btnStartMacroRecord.Enabled = false;
@@ -330,9 +371,8 @@ namespace P_Macro
         private void btnStopMacroRecord_Click(object sender, EventArgs e)
         {
             KeyboardState.stopRecord();
-            listBoxMacroRecordData.Items.Clear();
             recordMacroList = KeyboardState.getRecord();
-            listBoxMacroRecordData.Items.AddRange(macroRecordListTostringList(recordMacroList).ToArray());
+            updateListBoxMacroRecordData();
 
             btnStopMacroRecord.Enabled = false;
             btnStartMacroRecord.Enabled = true;
@@ -349,35 +389,182 @@ namespace P_Macro
         {
             if (listBoxMacroRecordData.SelectedIndex == listBoxMacroRecordDataPreviousIndex)
             {
-                clearRecordMacroProperty();
-                btnRemoveMacroRecordData.Enabled = false;
+                setMacroRecordDataButtonEnabled(false);
                 listBoxMacroRecordData.SelectedIndex = -1;
             }
             else if (listBoxMacroRecordData.SelectedIndex != -1)
             {
-                btnRemoveMacroRecordData.Enabled = true;
+                setMacroRecordDataButtonEnabled(true);
             }
             listBoxMacroRecordDataPreviousIndex = listBoxMacroRecordData.SelectedIndex;
         }
 
-        private void clearRecordMacroProperty()
+        private void setMacroRecordDataButtonEnabled(bool enabledState)
         {
+            btnEditMacroRecordData.Enabled = enabledState;
+            btnRemoveMacroRecordData.Enabled = enabledState;
+        }
 
+        private void btnInsertMacroRecordData_Click(object sender, EventArgs e)
+        {
+            MacroRecordDataForm macroRecordData = new MacroRecordDataForm(new KeyboardState.recordStateClass());
+
+            if (macroRecordData.ShowDialog() == DialogResult.OK)
+            {
+                recordMacroList.Insert(listBoxMacroRecordData.SelectedIndex + 1, macroRecordData.recordData);
+                updateListBoxMacroRecordData();
+            }
+            macroRecordData.Dispose();
+        }
+
+        private void btnEditMacroRecordData_Click(object sender, EventArgs e)
+        {
+            if (listBoxMacroRecordData.SelectedIndex != -1)
+            {
+                MacroRecordDataForm macroRecordData = new MacroRecordDataForm(recordMacroList[listBoxMacroRecordData.SelectedIndex]);
+
+                if (macroRecordData.ShowDialog() == DialogResult.OK)
+                {
+                    recordMacroList[listBoxMacroRecordData.SelectedIndex] = macroRecordData.recordData;
+                    updateListBoxMacroRecordData();
+                }
+                macroRecordData.Dispose();
+            }
         }
 
         private void btnRemoveMacroRecordData_Click(object sender, EventArgs e)
         {
             if (listBoxMacroRecordData.SelectedIndex != -1)
             {
+                int remSelectedIndex = listBoxMacroRecordData.SelectedIndex;
+
                 recordMacroList.RemoveAt(listBoxMacroRecordData.SelectedIndex);
                 listBoxMacroRecordData.Items.RemoveAt(listBoxMacroRecordData.SelectedIndex);
-                clearRecordMacroProperty();
+
+                if (remSelectedIndex < listBoxMacroRecordData.Items.Count)
+                    listBoxMacroRecordData.SelectedIndex = remSelectedIndex;
+                else
+                    setMacroRecordDataButtonEnabled(false);
             }
         }
 
         private void btnSaveRecordMacro_Click(object sender, EventArgs e)
         {
+            SaveRecordMacroForm saveRecordMacroForm = new SaveRecordMacroForm();
 
+            if (saveRecordMacroForm.ShowDialog() == DialogResult.OK)
+            {
+                bool isSave = true;
+
+                if (saveRecordMacroForm.saveName.IndexOfAny(Path.GetInvalidFileNameChars()) != -1)
+                {
+                    MessageBox.Show("[Error] Invalid File Name", "Error");
+                    isSave = false;
+                }
+                if (isSave && !Directory.Exists(SystemConfig.MacroRecordSavePath))
+                    Directory.CreateDirectory(SystemConfig.MacroRecordSavePath);
+                if (isSave && File.Exists(SystemConfig.MacroRecordSavePath + saveRecordMacroForm.saveName + SystemConfig.FileExt))
+                {
+                    if (MessageBox.Show("File Name Exist, Overwrite?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel)
+                        isSave = false;
+                }
+                if (isSave)
+                {
+                    FileStream fs = File.Open(SystemConfig.MacroRecordSavePath + saveRecordMacroForm.saveName + SystemConfig.FileExt, FileMode.Create);
+
+                    foreach (KeyboardState.recordStateClass data in recordMacroList)
+                    {
+                        byte[] bytearray = data.ToByteArray();
+
+                        fs.Write(bytearray, 0, bytearray.Length);
+                    }
+                    fs.Close();
+                    btnLoadMacroRecordList_Click(null, null);
+                }
+            }
+            saveRecordMacroForm.Dispose();
+        }
+
+        private void btnRemoveRecordMacro_Click(object sender, EventArgs e)
+        {
+            if (listBoxMacroRecordList.SelectedIndex != -1)
+            {
+                if (!File.Exists(SystemConfig.MacroRecordSavePath + listBoxMacroRecordList.Items[listBoxMacroRecordList.SelectedIndex] + SystemConfig.FileExt))
+                {
+                    MessageBox.Show("[Warning] Record Not Found", "Warning");
+                    listBoxMacroRecordList.Items.RemoveAt(listBoxMacroRecordList.SelectedIndex);
+                    recordMacroList.Clear();
+                    updateListBoxMacroRecordData();
+                }
+                else
+                {
+                    File.Delete(SystemConfig.MacroRecordSavePath + listBoxMacroRecordList.Items[listBoxMacroRecordList.SelectedIndex] + SystemConfig.FileExt);
+                    listBoxMacroRecordList.Items.RemoveAt(listBoxMacroRecordList.SelectedIndex);
+                }
+                btnRemoveRecordMacro.Enabled = false;
+            }
+        }
+
+        private void btnLoadMacroRecordList_Click(object sender, EventArgs e)
+        {
+            if (!Directory.Exists(SystemConfig.MacroRecordSavePath))
+            {
+                listBoxMacroRecordList.Items.Clear();
+                return;
+            }
+
+            listBoxMacroRecordList.Items.Clear();
+            foreach (string saveFileName in Directory.GetFiles(SystemConfig.MacroRecordSavePath).Select(Path.GetFileNameWithoutExtension))
+            {
+                listBoxMacroRecordList.Items.Add(saveFileName);
+            }
+        }
+
+        private void listBoxMacroRecordList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (listBoxMacroRecordList.SelectedIndex == listBoxMacroRecordListPreviousIndex)
+            {
+                btnRemoveRecordMacro.Enabled = false;
+                listBoxMacroRecordList.SelectedIndex = -1;
+            }
+            else if (listBoxMacroRecordList.SelectedIndex != -1)
+            {
+                if (!File.Exists(SystemConfig.MacroRecordSavePath + listBoxMacroRecordList.Items[listBoxMacroRecordList.SelectedIndex] + SystemConfig.FileExt))
+                {
+                    MessageBox.Show("[Error] Record Not Found", "Error");
+                    listBoxMacroRecordList.Items.RemoveAt(listBoxMacroRecordList.SelectedIndex);
+                    recordMacroList.Clear();
+                }
+                else
+                {
+                    byte[] bytearray = File.ReadAllBytes(SystemConfig.MacroRecordSavePath + listBoxMacroRecordList.Items[listBoxMacroRecordList.SelectedIndex] + SystemConfig.FileExt);
+                    int index = 0;
+
+                    recordMacroList.Clear();
+                    try
+                    {
+                        while (index < bytearray.Length)
+                        {
+                            int dataSize = BitConverter.ToInt32(bytearray, index);
+                            byte[] data = new byte[sizeof(int) + dataSize];
+
+                            Array.Copy(bytearray, index, data, 0, dataSize);
+                            recordMacroList.Add(new KeyboardState.recordStateClass(data));
+                            index += sizeof(int) + dataSize;
+                        }
+                        btnRemoveRecordMacro.Enabled = true;
+                    }
+                    catch
+                    {
+                        MessageBox.Show("[Error] Invalid Record", "Error");
+                        recordMacroList.Clear();
+                        File.Delete(SystemConfig.MacroRecordSavePath + listBoxMacroRecordList.Items[listBoxMacroRecordList.SelectedIndex] + SystemConfig.FileExt);
+                        listBoxMacroRecordList.Items.RemoveAt(listBoxMacroRecordList.SelectedIndex);
+                    }
+                }
+                updateListBoxMacroRecordData();
+            }
+            listBoxMacroRecordListPreviousIndex = listBoxMacroRecordList.SelectedIndex;
         }
     }
 }

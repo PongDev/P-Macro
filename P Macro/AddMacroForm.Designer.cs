@@ -122,6 +122,7 @@
             this.Controls.Add(this.tbMacroCommand);
             this.Controls.Add(this.lbMacroCommand);
             this.Controls.Add(this.lbMacroKey);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "AddMacroForm";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;

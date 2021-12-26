@@ -8,8 +8,10 @@ namespace P_Macro
 {
     class SystemConfig
     {
-        public const string Version = "Alpha 1.0.4";
-        public const string MacroSavePath = @".\P Macro.save";
+        public const string Version = "Alpha 1.0.5";
+        public const string MacroShortcutSavePath = @".\P Macro Save\Shortcut\";
+        public const string MacroRecordSavePath = @".\P Macro Save\Record\";
+        public const string FileExt = ".PMacroSave";
         public const string OnStartupArgs = "-bg";
     }
 }

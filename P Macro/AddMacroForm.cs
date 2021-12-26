@@ -10,7 +10,7 @@ using System.Windows.Forms;
 
 namespace P_Macro
 {
-    public partial class AddMacroForm : Form
+    partial class AddMacroForm : Form
     {
         public bool[] keyboardState = new bool[256];
         public string Command = "";

@@ -57,6 +57,8 @@ namespace P_Macro
         private const int WM_MOUSEHWHEEL = 0x020E;
         private const int WM_RBUTTONDOWN = 0x0204;
         private const int WM_RBUTTONUP = 0x0205;
+        private const int WM_MBUTTONDOWN = 0x0207;
+        private const int WM_MBUTTONUP = 0x0208;
         #endregion
 
         #region kbd_event dwFlags
@@ -95,10 +97,12 @@ namespace P_Macro
         private const int RECORD_MODE_MOUSEMOVE = 4;
         private const int RECORD_MODE_MOUSEWHEEL = 5;
         private const int RECORD_MODE_MOUSEHWHEEL = 6;
+        private const int RECORD_MODE_MBUTTONDOWN = 7;
+        private const int RECORD_MODE_MBUTTONUP = 8;
         #endregion
         #endregion
 
-        #region Struct
+        #region Struct and Class
         private struct POINT
         {
             public int x, y;
@@ -116,16 +120,64 @@ namespace P_Macro
         private struct MSLLHOOKSTRUCT
         {
             public POINT pt;
-            public uint mouseData;
+            public int mouseData;
             public uint flags;
             public uint time;
             public UIntPtr dwExtraInfo;
         }
 
-        public struct recordStateStruct
+        public class recordStateClass
         {
             public int type, x, y, value, mode;
             public uint vkCode, scanCode;
+
+            public recordStateClass()
+            {
+
+            }
+
+            public recordStateClass(byte[] bytearray)
+            {
+                FromByteArray(bytearray);
+            }
+
+            public byte[] ToByteArray()
+            {
+                List<byte> bytelist = new List<byte>();
+
+                bytelist.AddRange(BitConverter.GetBytes(0));
+                bytelist.AddRange(BitConverter.GetBytes(type));
+                bytelist.AddRange(BitConverter.GetBytes(x));
+                bytelist.AddRange(BitConverter.GetBytes(y));
+                bytelist.AddRange(BitConverter.GetBytes(value));
+                bytelist.AddRange(BitConverter.GetBytes(mode));
+                bytelist.AddRange(BitConverter.GetBytes(vkCode));
+                bytelist.AddRange(BitConverter.GetBytes(scanCode));
+                byte[] bytelistsize = BitConverter.GetBytes(bytelist.Count - sizeof(int));
+                for (int c = 0; c < bytelistsize.Length; c++)
+                    bytelist[c] = bytelistsize[c];
+                return bytelist.ToArray();
+            }
+
+            public void FromByteArray(byte[] bytearray)
+            {
+                int index = sizeof(int);
+
+                type = BitConverter.ToInt32(bytearray, index);
+                index += sizeof(int);
+                x = BitConverter.ToInt32(bytearray, index);
+                index += sizeof(int);
+                y = BitConverter.ToInt32(bytearray, index);
+                index += sizeof(int);
+                value = BitConverter.ToInt32(bytearray, index);
+                index += sizeof(int);
+                mode = BitConverter.ToInt32(bytearray, index);
+                index += sizeof(int);
+                vkCode = BitConverter.ToUInt32(bytearray, index);
+                index += sizeof(uint);
+                scanCode = BitConverter.ToUInt32(bytearray, index);
+                index += sizeof(uint);
+            }
         }
         #endregion
 
@@ -168,9 +220,13 @@ namespace P_Macro
 
         #region Variable Declaration
         private static bool workState = false;
+        private static bool recordKeyboard = true;
+        private static bool recordMouse = true;
         private static bool[] vkKeyboardState = new bool[256];
         private static bool[] vkSkipKeyboardState = new bool[256];
         private static bool[] scanKeyboardState = new bool[256];
+        private static LowLevelKeyboardProc LowLevelKeyboardProcDelegate = RecordKeyboardHook;
+        private static LowLevelMouseProc LowLevelMouseProcDelegate = RecordMouseHook;
         private static Thread KeyboardStateThreadHandle = new Thread(KeyboardStateThread);
         private static KeyboardStateCallbackFunction KeyboardStateCallback;
         private static IntPtr KeyboardHookId = IntPtr.Zero;
@@ -178,7 +234,7 @@ namespace P_Macro
         private static IntPtr RecordKeyboardHookId = IntPtr.Zero;
         private static IntPtr RecordMouseHookId = IntPtr.Zero;
         private static Stopwatch recordTimeStamp = new Stopwatch();
-        private static List<recordStateStruct> recordState = new List<recordStateStruct>();
+        private static List<recordStateClass> recordState = new List<recordStateClass>();
         #endregion
 
         #region Configuration
@@ -227,18 +283,18 @@ namespace P_Macro
         #region Record
         private static IntPtr RecordKeyboardHook(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (nCode >= 0)
+            if (recordKeyboard && nCode >= 0)
             {
-                recordStateStruct recordData;
+                recordStateClass recordData;
                 KBDLLHOOKSTRUCT keyboardHookData = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
 
-                recordData = new recordStateStruct();
+                recordData = new recordStateClass();
                 recordData.type = RECORD_TYPE_DELAY;
                 recordData.value = (int)recordTimeStamp.ElapsedMilliseconds;
                 recordState.Add(recordData);
                 recordTimeStamp.Restart();
 
-                recordData = new recordStateStruct();
+                recordData = new recordStateClass();
                 recordData.type = RECORD_TYPE_KEYBOARD;
                 switch ((int)wParam)
                 {
@@ -264,18 +320,18 @@ namespace P_Macro
 
         private static IntPtr RecordMouseHook(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (nCode >= 0)
+            if (recordMouse && nCode >= 0)
             {
-                recordStateStruct recordData;
+                recordStateClass recordData;
                 MSLLHOOKSTRUCT mouseHookData = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
 
-                recordData = new recordStateStruct();
+                recordData = new recordStateClass();
                 recordData.type = RECORD_TYPE_DELAY;
                 recordData.value = (int)recordTimeStamp.ElapsedMilliseconds;
                 recordState.Add(recordData);
                 recordTimeStamp.Restart();
 
-                recordData = new recordStateStruct();
+                recordData = new recordStateClass();
                 recordData.type = RECORD_TYPE_MOUSE;
                 switch ((int)wParam)
                 {
@@ -303,6 +359,12 @@ namespace P_Macro
                     case WM_MOUSEHWHEEL:
                         recordData.mode = RECORD_MODE_MOUSEHWHEEL;
                         recordData.value = (int)(mouseHookData.mouseData >> 16);
+                        break;
+                    case WM_MBUTTONDOWN:
+                        recordData.mode = RECORD_MODE_MBUTTONDOWN;
+                        break;
+                    case WM_MBUTTONUP:
+                        recordData.mode = RECORD_MODE_MBUTTONUP;
                         break;
                 }
                 recordState.Add(recordData);
@@ -371,6 +433,12 @@ namespace P_Macro
                 }
                 #endregion
             }
+        }
+
+        public static bool GetvkSkipKeyboardState(int i)
+        {
+            if (i < 0 || i >= vkSkipKeyboardState.Length) return false;
+            return vkSkipKeyboardState[i];
         }
 
         public static bool getvkKeyboardState(int idx)
@@ -484,10 +552,15 @@ namespace P_Macro
         {
             if (MouseHookId != IntPtr.Zero)
                 UnhookWindowsHookEx(MouseHookId);
-
         }
 
         #region Record
+        public static void configRecord(bool isRecordKeyboard, bool isRecordMouse)
+        {
+            recordKeyboard = isRecordKeyboard;
+            recordMouse = isRecordMouse;
+        }
+
         public static void resetRecord()
         {
             recordTimeStamp.Reset();
@@ -498,8 +571,8 @@ namespace P_Macro
         {
             stopRecord();
             recordTimeStamp.Start();
-            RecordKeyboardHookId = SetWindowsHookEx(WH_KEYBOARD_LL, (LowLevelKeyboardProc)RecordKeyboardHook, IntPtr.Zero, 0);
-            RecordMouseHookId = SetWindowsHookEx(WH_MOUSE_LL, (LowLevelMouseProc)RecordMouseHook, IntPtr.Zero, 0);
+            RecordKeyboardHookId = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProcDelegate, IntPtr.Zero, 0);
+            RecordMouseHookId = SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProcDelegate, IntPtr.Zero, 0);
         }
 
         public static void stopRecord()
@@ -509,24 +582,24 @@ namespace P_Macro
             recordTimeStamp.Stop();
         }
 
-        public static List<recordStateStruct> getRecord()
+        public static List<recordStateClass> getRecord()
         {
             return recordState;
         }
 
-        public static void playMacroRecord(List<recordStateStruct> recordList)
+        public static void playMacroRecord(List<recordStateClass> recordList)
         {
-            foreach (recordStateStruct recordData in recordList)
+            foreach (recordStateClass recordData in recordList)
             {
                 uint dwFlags = 0;
 
-                switch(recordData.type)
+                switch (recordData.type)
                 {
                     case RECORD_TYPE_DELAY:
                         Thread.Sleep(recordData.value);
                         break;
                     case RECORD_TYPE_KEYBOARD:
-                        switch(recordData.mode)
+                        switch (recordData.mode)
                         {
                             case RECORD_MODE_KEYDOWN:
                                 dwFlags = KEYEVENTF_KEYDOWN;
@@ -538,7 +611,7 @@ namespace P_Macro
                         keybd_event((byte)recordData.vkCode, (byte)recordData.scanCode, dwFlags, UIntPtr.Zero);
                         break;
                     case RECORD_TYPE_MOUSE:
-                        switch(recordData.mode)
+                        switch (recordData.mode)
                         {
                             case RECORD_MODE_LKEYDOWN:
                                 dwFlags = MOUSEEVENTF_LEFTDOWN;
@@ -561,6 +634,12 @@ namespace P_Macro
                             case RECORD_MODE_MOUSEHWHEEL:
                                 dwFlags = MOUSEEVENTF_HWHEEL;
                                 break;
+                            case RECORD_MODE_MBUTTONDOWN:
+                                dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+                                break;
+                            case RECORD_MODE_MBUTTONUP:
+                                dwFlags = MOUSEEVENTF_MIDDLEUP;
+                                break;
                         }
                         if (dwFlags == MOUSEEVENTF_MOVE)
                             SetCursorPos(recordData.x, recordData.y);
@@ -569,6 +648,11 @@ namespace P_Macro
                         break;
                 }
             }
+        }
+
+        public static uint VKtoVSC(uint vk)
+        {
+            return MapVirtualKey(MAPVK_VK_TO_VSC, vk);
         }
         #endregion
         #endregion

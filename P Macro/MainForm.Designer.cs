@@ -34,6 +34,8 @@
             this.notifyMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabMacroRecord = new System.Windows.Forms.TabPage();
+            this.btnLoadMacroRecordList = new System.Windows.Forms.Button();
+            this.btnSaveRecordMacro = new System.Windows.Forms.Button();
             this.btnRemoveMacroRecordData = new System.Windows.Forms.Button();
             this.btnPlayMacroRecord = new System.Windows.Forms.Button();
             this.lbMacroRecordData = new System.Windows.Forms.Label();
@@ -57,7 +59,11 @@
             this.listBoxMacroList = new System.Windows.Forms.ListBox();
             this.btnAddMacro = new System.Windows.Forms.Button();
             this.lbKeyPress = new System.Windows.Forms.Label();
-            this.btnSaveRecordMacro = new System.Windows.Forms.Button();
+            this.btnRemoveRecordMacro = new System.Windows.Forms.Button();
+            this.cbRecordMouse = new System.Windows.Forms.CheckBox();
+            this.cbRecordKeyboard = new System.Windows.Forms.CheckBox();
+            this.btnInsertMacroRecordData = new System.Windows.Forms.Button();
+            this.btnEditMacroRecordData = new System.Windows.Forms.Button();
             this.notifyMenu.SuspendLayout();
             this.tabMacroRecord.SuspendLayout();
             this.tabControl.SuspendLayout();
@@ -88,6 +94,12 @@
             // 
             // tabMacroRecord
             // 
+            this.tabMacroRecord.Controls.Add(this.btnEditMacroRecordData);
+            this.tabMacroRecord.Controls.Add(this.btnInsertMacroRecordData);
+            this.tabMacroRecord.Controls.Add(this.cbRecordKeyboard);
+            this.tabMacroRecord.Controls.Add(this.cbRecordMouse);
+            this.tabMacroRecord.Controls.Add(this.btnRemoveRecordMacro);
+            this.tabMacroRecord.Controls.Add(this.btnLoadMacroRecordList);
             this.tabMacroRecord.Controls.Add(this.btnSaveRecordMacro);
             this.tabMacroRecord.Controls.Add(this.btnRemoveMacroRecordData);
             this.tabMacroRecord.Controls.Add(this.btnPlayMacroRecord);
@@ -100,17 +112,37 @@
             this.tabMacroRecord.Location = new System.Drawing.Point(4, 22);
             this.tabMacroRecord.Name = "tabMacroRecord";
             this.tabMacroRecord.Padding = new System.Windows.Forms.Padding(3);
-            this.tabMacroRecord.Size = new System.Drawing.Size(676, 200);
+            this.tabMacroRecord.Size = new System.Drawing.Size(676, 239);
             this.tabMacroRecord.TabIndex = 2;
             this.tabMacroRecord.Text = "Macro Record";
             this.tabMacroRecord.UseVisualStyleBackColor = true;
             // 
+            // btnLoadMacroRecordList
+            // 
+            this.btnLoadMacroRecordList.Location = new System.Drawing.Point(8, 203);
+            this.btnLoadMacroRecordList.Name = "btnLoadMacroRecordList";
+            this.btnLoadMacroRecordList.Size = new System.Drawing.Size(120, 23);
+            this.btnLoadMacroRecordList.TabIndex = 9;
+            this.btnLoadMacroRecordList.Text = "Load Record List";
+            this.btnLoadMacroRecordList.UseVisualStyleBackColor = true;
+            this.btnLoadMacroRecordList.Click += new System.EventHandler(this.btnLoadMacroRecordList_Click);
+            // 
+            // btnSaveRecordMacro
+            // 
+            this.btnSaveRecordMacro.Location = new System.Drawing.Point(575, 174);
+            this.btnSaveRecordMacro.Name = "btnSaveRecordMacro";
+            this.btnSaveRecordMacro.Size = new System.Drawing.Size(95, 23);
+            this.btnSaveRecordMacro.TabIndex = 8;
+            this.btnSaveRecordMacro.Text = "Save Record";
+            this.btnSaveRecordMacro.UseVisualStyleBackColor = true;
+            this.btnSaveRecordMacro.Click += new System.EventHandler(this.btnSaveRecordMacro_Click);
+            // 
             // btnRemoveMacroRecordData
             // 
             this.btnRemoveMacroRecordData.Enabled = false;
-            this.btnRemoveMacroRecordData.Location = new System.Drawing.Point(397, 28);
+            this.btnRemoveMacroRecordData.Location = new System.Drawing.Point(575, 86);
             this.btnRemoveMacroRecordData.Name = "btnRemoveMacroRecordData";
-            this.btnRemoveMacroRecordData.Size = new System.Drawing.Size(85, 23);
+            this.btnRemoveMacroRecordData.Size = new System.Drawing.Size(95, 23);
             this.btnRemoveMacroRecordData.TabIndex = 7;
             this.btnRemoveMacroRecordData.Text = "Remove Data";
             this.btnRemoveMacroRecordData.UseVisualStyleBackColor = true;
@@ -118,9 +150,9 @@
             // 
             // btnPlayMacroRecord
             // 
-            this.btnPlayMacroRecord.Location = new System.Drawing.Point(316, 164);
+            this.btnPlayMacroRecord.Location = new System.Drawing.Point(575, 203);
             this.btnPlayMacroRecord.Name = "btnPlayMacroRecord";
-            this.btnPlayMacroRecord.Size = new System.Drawing.Size(75, 23);
+            this.btnPlayMacroRecord.Size = new System.Drawing.Size(95, 23);
             this.btnPlayMacroRecord.TabIndex = 6;
             this.btnPlayMacroRecord.Text = "Play Record";
             this.btnPlayMacroRecord.UseVisualStyleBackColor = true;
@@ -140,14 +172,14 @@
             this.listBoxMacroRecordData.FormattingEnabled = true;
             this.listBoxMacroRecordData.Location = new System.Drawing.Point(135, 28);
             this.listBoxMacroRecordData.Name = "listBoxMacroRecordData";
-            this.listBoxMacroRecordData.Size = new System.Drawing.Size(256, 134);
+            this.listBoxMacroRecordData.Size = new System.Drawing.Size(434, 173);
             this.listBoxMacroRecordData.TabIndex = 4;
             this.listBoxMacroRecordData.SelectedIndexChanged += new System.EventHandler(this.listBoxMacroRecordData_SelectedIndexChanged);
             // 
             // btnStopMacroRecord
             // 
             this.btnStopMacroRecord.Enabled = false;
-            this.btnStopMacroRecord.Location = new System.Drawing.Point(216, 164);
+            this.btnStopMacroRecord.Location = new System.Drawing.Point(216, 203);
             this.btnStopMacroRecord.Name = "btnStopMacroRecord";
             this.btnStopMacroRecord.Size = new System.Drawing.Size(75, 23);
             this.btnStopMacroRecord.TabIndex = 3;
@@ -157,7 +189,7 @@
             // 
             // btnStartMacroRecord
             // 
-            this.btnStartMacroRecord.Location = new System.Drawing.Point(135, 164);
+            this.btnStartMacroRecord.Location = new System.Drawing.Point(135, 203);
             this.btnStartMacroRecord.Name = "btnStartMacroRecord";
             this.btnStartMacroRecord.Size = new System.Drawing.Size(75, 23);
             this.btnStartMacroRecord.TabIndex = 2;
@@ -179,8 +211,9 @@
             this.listBoxMacroRecordList.FormattingEnabled = true;
             this.listBoxMacroRecordList.Location = new System.Drawing.Point(8, 28);
             this.listBoxMacroRecordList.Name = "listBoxMacroRecordList";
-            this.listBoxMacroRecordList.Size = new System.Drawing.Size(120, 160);
+            this.listBoxMacroRecordList.Size = new System.Drawing.Size(120, 173);
             this.listBoxMacroRecordList.TabIndex = 0;
+            this.listBoxMacroRecordList.SelectedIndexChanged += new System.EventHandler(this.listBoxMacroRecordList_SelectedIndexChanged);
             // 
             // tabControl
             // 
@@ -189,7 +222,7 @@
             this.tabControl.Location = new System.Drawing.Point(0, 0);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(684, 226);
+            this.tabControl.Size = new System.Drawing.Size(684, 265);
             this.tabControl.TabIndex = 1;
             // 
             // tabShortcutMacro
@@ -210,7 +243,7 @@
             this.tabShortcutMacro.Location = new System.Drawing.Point(4, 22);
             this.tabShortcutMacro.Name = "tabShortcutMacro";
             this.tabShortcutMacro.Padding = new System.Windows.Forms.Padding(3);
-            this.tabShortcutMacro.Size = new System.Drawing.Size(676, 200);
+            this.tabShortcutMacro.Size = new System.Drawing.Size(676, 239);
             this.tabShortcutMacro.TabIndex = 3;
             this.tabShortcutMacro.Text = "Shortcut Macro";
             this.tabShortcutMacro.UseVisualStyleBackColor = true;
@@ -218,7 +251,7 @@
             // cbRunOnStartup
             // 
             this.cbRunOnStartup.AutoSize = true;
-            this.cbRunOnStartup.Location = new System.Drawing.Point(566, 170);
+            this.cbRunOnStartup.Location = new System.Drawing.Point(566, 209);
             this.cbRunOnStartup.Name = "cbRunOnStartup";
             this.cbRunOnStartup.Size = new System.Drawing.Size(100, 17);
             this.cbRunOnStartup.TabIndex = 27;
@@ -228,7 +261,7 @@
             // 
             // btnLoadMacro
             // 
-            this.btnLoadMacro.Location = new System.Drawing.Point(92, 166);
+            this.btnLoadMacro.Location = new System.Drawing.Point(92, 205);
             this.btnLoadMacro.Name = "btnLoadMacro";
             this.btnLoadMacro.Size = new System.Drawing.Size(75, 23);
             this.btnLoadMacro.TabIndex = 26;
@@ -238,7 +271,7 @@
             // 
             // btnSaveMacro
             // 
-            this.btnSaveMacro.Location = new System.Drawing.Point(10, 166);
+            this.btnSaveMacro.Location = new System.Drawing.Point(10, 205);
             this.btnSaveMacro.Name = "btnSaveMacro";
             this.btnSaveMacro.Size = new System.Drawing.Size(75, 23);
             this.btnSaveMacro.TabIndex = 25;
@@ -319,7 +352,7 @@
             this.listBoxMacroList.FormattingEnabled = true;
             this.listBoxMacroList.Location = new System.Drawing.Point(10, 64);
             this.listBoxMacroList.Name = "listBoxMacroList";
-            this.listBoxMacroList.Size = new System.Drawing.Size(250, 95);
+            this.listBoxMacroList.Size = new System.Drawing.Size(250, 134);
             this.listBoxMacroList.TabIndex = 17;
             this.listBoxMacroList.SelectedIndexChanged += new System.EventHandler(this.listBoxMacroList_SelectedIndexChanged);
             // 
@@ -342,21 +375,67 @@
             this.lbKeyPress.TabIndex = 15;
             this.lbKeyPress.Text = "Key Press: ";
             // 
-            // btnSaveRecordMacro
+            // btnRemoveRecordMacro
             // 
-            this.btnSaveRecordMacro.Location = new System.Drawing.Point(397, 57);
-            this.btnSaveRecordMacro.Name = "btnSaveRecordMacro";
-            this.btnSaveRecordMacro.Size = new System.Drawing.Size(85, 23);
-            this.btnSaveRecordMacro.TabIndex = 8;
-            this.btnSaveRecordMacro.Text = "Save Record";
-            this.btnSaveRecordMacro.UseVisualStyleBackColor = true;
-            this.btnSaveRecordMacro.Click += new System.EventHandler(this.btnSaveRecordMacro_Click);
+            this.btnRemoveRecordMacro.Enabled = false;
+            this.btnRemoveRecordMacro.Location = new System.Drawing.Point(575, 145);
+            this.btnRemoveRecordMacro.Name = "btnRemoveRecordMacro";
+            this.btnRemoveRecordMacro.Size = new System.Drawing.Size(95, 23);
+            this.btnRemoveRecordMacro.TabIndex = 10;
+            this.btnRemoveRecordMacro.Text = "Remove Record";
+            this.btnRemoveRecordMacro.UseVisualStyleBackColor = true;
+            this.btnRemoveRecordMacro.Click += new System.EventHandler(this.btnRemoveRecordMacro_Click);
+            // 
+            // cbRecordMouse
+            // 
+            this.cbRecordMouse.AutoSize = true;
+            this.cbRecordMouse.Checked = true;
+            this.cbRecordMouse.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbRecordMouse.Location = new System.Drawing.Point(412, 207);
+            this.cbRecordMouse.Name = "cbRecordMouse";
+            this.cbRecordMouse.Size = new System.Drawing.Size(96, 17);
+            this.cbRecordMouse.TabIndex = 11;
+            this.cbRecordMouse.Text = "Record Mouse";
+            this.cbRecordMouse.UseVisualStyleBackColor = true;
+            // 
+            // cbRecordKeyboard
+            // 
+            this.cbRecordKeyboard.AutoSize = true;
+            this.cbRecordKeyboard.Checked = true;
+            this.cbRecordKeyboard.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbRecordKeyboard.Location = new System.Drawing.Point(297, 207);
+            this.cbRecordKeyboard.Name = "cbRecordKeyboard";
+            this.cbRecordKeyboard.Size = new System.Drawing.Size(109, 17);
+            this.cbRecordKeyboard.TabIndex = 12;
+            this.cbRecordKeyboard.Text = "Record Keyboard";
+            this.cbRecordKeyboard.UseVisualStyleBackColor = true;
+            // 
+            // btnInsertMacroRecordData
+            // 
+            this.btnInsertMacroRecordData.Location = new System.Drawing.Point(575, 28);
+            this.btnInsertMacroRecordData.Name = "btnInsertMacroRecordData";
+            this.btnInsertMacroRecordData.Size = new System.Drawing.Size(95, 23);
+            this.btnInsertMacroRecordData.TabIndex = 13;
+            this.btnInsertMacroRecordData.Text = "Insert Data";
+            this.btnInsertMacroRecordData.UseVisualStyleBackColor = true;
+            this.btnInsertMacroRecordData.Click += new System.EventHandler(this.btnInsertMacroRecordData_Click);
+            // 
+            // btnEditMacroRecordData
+            // 
+            this.btnEditMacroRecordData.Enabled = false;
+            this.btnEditMacroRecordData.Location = new System.Drawing.Point(575, 57);
+            this.btnEditMacroRecordData.Name = "btnEditMacroRecordData";
+            this.btnEditMacroRecordData.Size = new System.Drawing.Size(95, 23);
+            this.btnEditMacroRecordData.TabIndex = 14;
+            this.btnEditMacroRecordData.Text = "Edit Data";
+            this.btnEditMacroRecordData.UseVisualStyleBackColor = true;
+            this.btnEditMacroRecordData.Click += new System.EventHandler(this.btnEditMacroRecordData_Click);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(680, 222);
+            this.ClientSize = new System.Drawing.Size(680, 261);
             this.Controls.Add(this.tabControl);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -405,6 +484,12 @@
         private System.Windows.Forms.Button btnPlayMacroRecord;
         private System.Windows.Forms.Button btnRemoveMacroRecordData;
         private System.Windows.Forms.Button btnSaveRecordMacro;
+        private System.Windows.Forms.Button btnLoadMacroRecordList;
+        private System.Windows.Forms.Button btnRemoveRecordMacro;
+        private System.Windows.Forms.CheckBox cbRecordKeyboard;
+        private System.Windows.Forms.CheckBox cbRecordMouse;
+        private System.Windows.Forms.Button btnEditMacroRecordData;
+        private System.Windows.Forms.Button btnInsertMacroRecordData;
     }
 }
 
