@@ -8,7 +8,7 @@ namespace P_Macro
 {
     class SystemConfig
     {
-        public const string Version = "Alpha 1.0.3";
+        public const string Version = "Alpha 1.0.4";
         public const string MacroSavePath = @".\P Macro.save";
         public const string OnStartupArgs = "-bg";
     }

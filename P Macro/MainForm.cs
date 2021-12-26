@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -15,18 +16,20 @@ namespace P_Macro
     public partial class MainForm : Form
     {
         private List<KeyboardMacro> keyboardMacroList = new List<KeyboardMacro>();
+        private List<KeyboardState.recordStateStruct> recordMacroList = new List<KeyboardState.recordStateStruct>();
         private bool updatelbKeyPress = true;
         private int listBoxMacroListPreviousIndex = -1;
+        private int listBoxMacroRecordDataPreviousIndex = -1;
         private bool run = true;
 
         public MainForm(string[] args)
         {
             InitializeComponent();
             this.Text += " " + SystemConfig.Version;
-            KeyboardState.SetvkSkipKeyboardState(KeyboardState.vkSkipKeyboardState_Define.Mouse|KeyboardState.vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU|KeyboardState.vkSkipKeyboardState_Define.KEY255);
+            KeyboardState.SetvkSkipKeyboardState(KeyboardState.vkSkipKeyboardState_Define.Mouse | KeyboardState.vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU | KeyboardState.vkSkipKeyboardState_Define.KEY255);
             KeyboardState.Init();
             KeyboardState.SetKeyboardStateCallback(KeyboardStateCallbackFunction);
-            btnLoadMacro_Click(null,null);
+            btnLoadMacro_Click(null, null);
             cbRunOnStartup.Checked = runOnStartup();
             if (args.Contains("-bg"))
             {
@@ -63,10 +66,10 @@ namespace P_Macro
                 else lbKeyPress.Text = strKeyPress;
             }
 
-            foreach(KeyboardMacro macro in keyboardMacroList)
+            foreach (KeyboardMacro macro in keyboardMacroList)
             {
                 macro.updatevkKeyboardState();
-                if (KeyboardState.isNovkKeyPress()&&macro.releasevkKeyboardState)
+                if (KeyboardState.isNovkKeyPress() && macro.releasevkKeyboardState)
                     macro.executeCommand();
             }
         }
@@ -76,13 +79,26 @@ namespace P_Macro
             updatelbKeyPress = false;
             AddMacroForm addMacroForm = new AddMacroForm();
 
+            bool isKeydown = false, showAddMacroFormDialog = true;
+
             for (int c = 0; c < 256; c++)
-                addMacroForm.keyboardState[c] = KeyboardState.getvkKeyboardState(c);
-            if (addMacroForm.ShowDialog() == DialogResult.OK)
             {
-                keyboardMacroList.Add(new KeyboardMacro(addMacroForm.keyboardState,addMacroForm.Command,addMacroForm.hideCmd));
+                addMacroForm.keyboardState[c] = KeyboardState.getvkKeyboardState(c);
+                if (addMacroForm.keyboardState[c])
+                    isKeydown = true;
+            }
+            if (!isKeydown)
+            {
+                DialogResult result = MessageBox.Show("[Warning] Add Macro To No Key Press?", "Warning", MessageBoxButtons.OKCancel);
+                if (result == DialogResult.Cancel)
+                    showAddMacroFormDialog = false;
+            }
+            if (showAddMacroFormDialog && addMacroForm.ShowDialog() == DialogResult.OK)
+            {
+                keyboardMacroList.Add(new KeyboardMacro(addMacroForm.keyboardState, addMacroForm.Command, addMacroForm.hideCmd));
                 updateListBoxMacroList();
             }
+
             addMacroForm.Dispose();
             updatelbKeyPress = true;
         }
@@ -90,7 +106,7 @@ namespace P_Macro
         private void updateListBoxMacroList()
         {
             listBoxMacroList.Items.Clear();
-            foreach(KeyboardMacro macro in keyboardMacroList)
+            foreach (KeyboardMacro macro in keyboardMacroList)
                 listBoxMacroList.Items.Add(KeyboardState.KeyboardStateToText(macro.vkKeyboardState));
         }
 
@@ -99,10 +115,18 @@ namespace P_Macro
             if (listBoxMacroList.SelectedIndex == listBoxMacroListPreviousIndex)
             {
                 clearMacroProperty();
+                cbMacroPropertyHideCmd.Enabled = false;
+                tbMacroPropertyCommand.Enabled = false;
+                btnMacroPropertyUpdate.Enabled = false;
+                btnMacroPropertyRemove.Enabled = false;
                 listBoxMacroList.SelectedIndex = -1;
             }
             else if (listBoxMacroList.SelectedIndex != -1)
             {
+                cbMacroPropertyHideCmd.Enabled = true;
+                tbMacroPropertyCommand.Enabled = true;
+                btnMacroPropertyUpdate.Enabled = true;
+                btnMacroPropertyRemove.Enabled = true;
                 cbMacroPropertyHideCmd.Checked = keyboardMacroList[listBoxMacroList.SelectedIndex].hideCmd;
                 tbMacroPropertyCommand.Text = keyboardMacroList[listBoxMacroList.SelectedIndex].Command;
             }
@@ -138,7 +162,7 @@ namespace P_Macro
         {
             FileStream fs = File.Open(SystemConfig.MacroSavePath, FileMode.Create);
 
-            foreach(KeyboardMacro macro in keyboardMacroList)
+            foreach (KeyboardMacro macro in keyboardMacroList)
             {
                 byte[] bytearray = macro.ToByteArray();
 
@@ -157,7 +181,7 @@ namespace P_Macro
 
             while (index < bytearray.Length)
             {
-                int dataLength = BitConverter.ToInt32(bytearray,index);
+                int dataLength = BitConverter.ToInt32(bytearray, index);
 
                 byte[] macrobytedata = new byte[4 + dataLength];
 
@@ -216,6 +240,144 @@ namespace P_Macro
                 runOnStartup(true);
             else
                 runOnStartup(false);
+        }
+
+        List<string> macroRecordListTostringList(List<KeyboardState.recordStateStruct> list)
+        {
+            #region Record State Define
+            const int RECORD_TYPE_DELAY = 0;
+            const int RECORD_TYPE_KEYBOARD = 1;
+            const int RECORD_TYPE_MOUSE = 2;
+
+            const int RECORD_MODE_KEYDOWN = 0;
+            const int RECORD_MODE_KEYUP = 1;
+
+            const int RECORD_MODE_LKEYDOWN = 0;
+            const int RECORD_MODE_LKEYUP = 1;
+            const int RECORD_MODE_RKEYDOWN = 2;
+            const int RECORD_MODE_RKEYUP = 3;
+            const int RECORD_MODE_MOUSEMOVE = 4;
+            const int RECORD_MODE_MOUSEWHEEL = 5;
+            const int RECORD_MODE_MOUSEHWHEEL = 6;
+            #endregion
+
+            List<string> stringList = new List<string>();
+
+            foreach (KeyboardState.recordStateStruct listdata in list)
+            {
+                string listdatastring = "";
+
+                switch (listdata.type)
+                {
+                    case RECORD_TYPE_DELAY:
+                        listdatastring = "Delay " + listdata.value;
+                        break;
+                    case RECORD_TYPE_KEYBOARD:
+                        listdatastring = "Keyboard ";
+                        switch (listdata.mode)
+                        {
+                            case RECORD_MODE_KEYDOWN:
+                                listdatastring += (Keys)listdata.vkCode + " DOWN";
+                                break;
+                            case RECORD_MODE_KEYUP:
+                                listdatastring += (Keys)listdata.vkCode + " UP";
+                                break;
+                        }
+                        break;
+                    case RECORD_TYPE_MOUSE:
+                        listdatastring = "MOUSE ";
+                        switch (listdata.mode)
+                        {
+                            case RECORD_MODE_LKEYDOWN:
+                                listdatastring += "LKEYDOWN";
+                                break;
+                            case RECORD_MODE_LKEYUP:
+                                listdatastring += "LKEYUP";
+                                break;
+                            case RECORD_MODE_RKEYDOWN:
+                                listdatastring += "RKEYDOWN";
+                                break;
+                            case RECORD_MODE_RKEYUP:
+                                listdatastring += "RKEYUP";
+                                break;
+                            case RECORD_MODE_MOUSEMOVE:
+                                listdatastring += "MOVE X:" + listdata.x + " Y:" + listdata.y;
+                                break;
+                            case RECORD_MODE_MOUSEWHEEL:
+                                listdatastring += "MOUSE WHEEL " + listdata.value;
+                                break;
+                            case RECORD_MODE_MOUSEHWHEEL:
+                                listdatastring += "MOUSEHWHEEL " + listdata.value;
+                                break;
+                        }
+                        break;
+                }
+                stringList.Add(listdatastring);
+            }
+            return stringList;
+        }
+
+        private void btnStartMacroRecord_Click(object sender, EventArgs e)
+        {
+            KeyboardState.resetRecord();
+            listBoxMacroRecordData.Items.Clear();
+            KeyboardState.startRecord();
+
+            btnStartMacroRecord.Enabled = false;
+            btnStopMacroRecord.Enabled = true;
+        }
+
+        private void btnStopMacroRecord_Click(object sender, EventArgs e)
+        {
+            KeyboardState.stopRecord();
+            listBoxMacroRecordData.Items.Clear();
+            recordMacroList = KeyboardState.getRecord();
+            listBoxMacroRecordData.Items.AddRange(macroRecordListTostringList(recordMacroList).ToArray());
+
+            btnStopMacroRecord.Enabled = false;
+            btnStartMacroRecord.Enabled = true;
+        }
+
+        private void btnPlayMacroRecord_Click(object sender, EventArgs e)
+        {
+            Thread playMacroRecordThread = new Thread(() => KeyboardState.playMacroRecord(recordMacroList));
+
+            playMacroRecordThread.Start();
+        }
+
+        private void listBoxMacroRecordData_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (listBoxMacroRecordData.SelectedIndex == listBoxMacroRecordDataPreviousIndex)
+            {
+                clearRecordMacroProperty();
+                btnRemoveMacroRecordData.Enabled = false;
+                listBoxMacroRecordData.SelectedIndex = -1;
+            }
+            else if (listBoxMacroRecordData.SelectedIndex != -1)
+            {
+                btnRemoveMacroRecordData.Enabled = true;
+            }
+            listBoxMacroRecordDataPreviousIndex = listBoxMacroRecordData.SelectedIndex;
+        }
+
+        private void clearRecordMacroProperty()
+        {
+
+        }
+
+        private void btnRemoveMacroRecordData_Click(object sender, EventArgs e)
+        {
+            if (listBoxMacroRecordData.SelectedIndex != -1)
+            {
+                recordMacroList.RemoveAt(listBoxMacroRecordData.SelectedIndex);
+                listBoxMacroRecordData.Items.RemoveAt(listBoxMacroRecordData.SelectedIndex);
+                clearRecordMacroProperty();
+            }
+        }
+
+        private void btnSaveRecordMacro_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
