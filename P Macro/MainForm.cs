@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -16,19 +17,36 @@ namespace P_Macro
         private List<KeyboardMacro> keyboardMacroList = new List<KeyboardMacro>();
         private bool updatelbKeyPress = true;
         private int listBoxMacroListPreviousIndex = -1;
+        private bool run = true;
 
-        public MainForm()
+        public MainForm(string[] args)
         {
             InitializeComponent();
             this.Text += " " + SystemConfig.Version;
             KeyboardState.SetvkSkipKeyboardState(KeyboardState.vkSkipKeyboardState_Define.Mouse|KeyboardState.vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU|KeyboardState.vkSkipKeyboardState_Define.KEY255);
             KeyboardState.Init();
             KeyboardState.SetKeyboardStateCallback(KeyboardStateCallbackFunction);
+            btnLoadMacro_Click(null,null);
+            cbRunOnStartup.Checked = runOnStartup();
+            if (args.Contains("-bg"))
+            {
+                this.ShowInTaskbar = false;
+                this.WindowState = FormWindowState.Minimized;
+            }
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             KeyboardState.Exit();
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (run)
+            {
+                e.Cancel = true;
+                this.Hide();
+            }
         }
 
         private void KeyboardStateCallbackFunction()
@@ -148,6 +166,56 @@ namespace P_Macro
                 index += 4 + dataLength;
             }
             updateListBoxMacroList();
+        }
+
+        private void configToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Show();
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            run = false;
+            this.Close();
+        }
+
+        private void notifyIcon_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                this.ShowInTaskbar = true;
+                this.WindowState = FormWindowState.Normal;
+                this.Show();
+            }
+        }
+
+        private bool runOnStartup()
+        {
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+
+            return ((string)rk.GetValue("P Macro") == ("\"" + Application.ExecutablePath + "\" " + SystemConfig.OnStartupArgs)) ? true : false;
+        }
+
+        private void runOnStartup(bool runOnStartup)
+        {
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+
+            if (runOnStartup)
+            {
+                rk.SetValue("P Macro", "\"" + Application.ExecutablePath + "\" " + SystemConfig.OnStartupArgs);
+            }
+            else
+            {
+                rk.DeleteValue("P Macro", false);
+            }
+        }
+
+        private void cbRunOnStartup_CheckedChanged(object sender, EventArgs e)
+        {
+            if (((CheckBox)sender).Checked)
+                runOnStartup(true);
+            else
+                runOnStartup(false);
         }
     }
 }

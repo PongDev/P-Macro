@@ -28,6 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.lbKeyPress = new System.Windows.Forms.Label();
             this.btnAddMacro = new System.Windows.Forms.Button();
             this.listBoxMacroList = new System.Windows.Forms.ListBox();
@@ -40,6 +42,11 @@
             this.btnMacroPropertyRemove = new System.Windows.Forms.Button();
             this.btnSaveMacro = new System.Windows.Forms.Button();
             this.btnLoadMacro = new System.Windows.Forms.Button();
+            this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.notifyMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cbRunOnStartup = new System.Windows.Forms.CheckBox();
+            this.notifyMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // lbKeyPress
@@ -154,11 +161,45 @@
             this.btnLoadMacro.UseVisualStyleBackColor = true;
             this.btnLoadMacro.Click += new System.EventHandler(this.btnLoadMacro_Click);
             // 
+            // notifyIcon
+            // 
+            this.notifyIcon.ContextMenuStrip = this.notifyMenu;
+            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
+            this.notifyIcon.Text = "P Macro";
+            this.notifyIcon.Visible = true;
+            this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
+            // 
+            // notifyMenu
+            // 
+            this.notifyMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.exitToolStripMenuItem});
+            this.notifyMenu.Name = "notifyMenu";
+            this.notifyMenu.Size = new System.Drawing.Size(93, 26);
+            // 
+            // exitToolStripMenuItem
+            // 
+            this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(92, 22);
+            this.exitToolStripMenuItem.Text = "Exit";
+            this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
+            // 
+            // cbRunOnStartup
+            // 
+            this.cbRunOnStartup.AutoSize = true;
+            this.cbRunOnStartup.Location = new System.Drawing.Point(568, 181);
+            this.cbRunOnStartup.Name = "cbRunOnStartup";
+            this.cbRunOnStartup.Size = new System.Drawing.Size(100, 17);
+            this.cbRunOnStartup.TabIndex = 14;
+            this.cbRunOnStartup.Text = "Run On Startup";
+            this.cbRunOnStartup.UseVisualStyleBackColor = true;
+            this.cbRunOnStartup.CheckedChanged += new System.EventHandler(this.cbRunOnStartup_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(680, 212);
+            this.Controls.Add(this.cbRunOnStartup);
             this.Controls.Add(this.btnLoadMacro);
             this.Controls.Add(this.btnSaveMacro);
             this.Controls.Add(this.btnMacroPropertyRemove);
@@ -172,12 +213,14 @@
             this.Controls.Add(this.btnAddMacro);
             this.Controls.Add(this.lbKeyPress);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "MainForm";
-            this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "P Macro";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
+            this.notifyMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -197,6 +240,10 @@
         private System.Windows.Forms.Button btnMacroPropertyRemove;
         private System.Windows.Forms.Button btnSaveMacro;
         private System.Windows.Forms.Button btnLoadMacro;
+        private System.Windows.Forms.NotifyIcon notifyIcon;
+        private System.Windows.Forms.ContextMenuStrip notifyMenu;
+        private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
+        private System.Windows.Forms.CheckBox cbRunOnStartup;
     }
 }
 

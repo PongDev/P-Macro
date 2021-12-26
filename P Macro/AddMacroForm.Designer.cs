@@ -34,6 +34,8 @@
             this.btnAddMacro = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.cbHideCmd = new System.Windows.Forms.CheckBox();
+            this.btnBrowse = new System.Windows.Forms.Button();
+            this.openExeFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.SuspendLayout();
             // 
             // lbMacroKey
@@ -58,7 +60,7 @@
             // 
             this.tbMacroCommand.Location = new System.Drawing.Point(76, 30);
             this.tbMacroCommand.Name = "tbMacroCommand";
-            this.tbMacroCommand.Size = new System.Drawing.Size(396, 20);
+            this.tbMacroCommand.Size = new System.Drawing.Size(315, 20);
             this.tbMacroCommand.TabIndex = 2;
             // 
             // btnAddMacro
@@ -93,11 +95,27 @@
             this.cbHideCmd.Text = "Hide Cmd";
             this.cbHideCmd.UseVisualStyleBackColor = true;
             // 
+            // btnBrowse
+            // 
+            this.btnBrowse.Location = new System.Drawing.Point(397, 28);
+            this.btnBrowse.Name = "btnBrowse";
+            this.btnBrowse.Size = new System.Drawing.Size(75, 23);
+            this.btnBrowse.TabIndex = 6;
+            this.btnBrowse.Text = "Browse .exe";
+            this.btnBrowse.UseVisualStyleBackColor = true;
+            this.btnBrowse.Click += new System.EventHandler(this.btnBrowse_Click);
+            // 
+            // openExeFileDialog
+            // 
+            this.openExeFileDialog.Filter = ".exe File|*.exe";
+            this.openExeFileDialog.Title = "Select .exe File For Macro";
+            // 
             // AddMacroForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(484, 91);
+            this.Controls.Add(this.btnBrowse);
             this.Controls.Add(this.cbHideCmd);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnAddMacro);
@@ -122,5 +140,7 @@
         private System.Windows.Forms.Button btnAddMacro;
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.CheckBox cbHideCmd;
+        private System.Windows.Forms.Button btnBrowse;
+        private System.Windows.Forms.OpenFileDialog openExeFileDialog;
     }
 }

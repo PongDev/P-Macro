@@ -37,5 +37,13 @@ namespace P_Macro
         {
             this.DialogResult = DialogResult.Cancel;
         }
+
+        private void btnBrowse_Click(object sender, EventArgs e)
+        {
+            if (openExeFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                tbMacroCommand.Text = openExeFileDialog.FileName;
+            }
+        }
     }
 }
