@@ -5,7 +5,6 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -13,63 +12,46 @@ namespace P_Macro
 {
     public partial class MainForm : Form
     {
-        private List<KeyboardMacro> macroList = new List<KeyboardMacro>();
+        private List<KeyboardMacro> keyboardMacroList = new List<KeyboardMacro>();
 
         public MainForm()
         {
             InitializeComponent();
-            this.Text += " Version: " + SystemConfig.Version;
-            KeyboardStatus.SetHook();
-            //KeyboardStatus.startUpdateKeyStateThread();
-            KeyboardStatus.setKeyboardEventCallback(KeyboardCallbackFunc);
-            if (!bgWorkerKeyPress.IsBusy)
-                bgWorkerKeyPress.RunWorkerAsync();
-            KeyboardMacro tmp = new KeyboardMacro();
-            tmp.KeyboardState[65] = true;
-            tmp.macroCommand = "help&pause";
-            macroList.Add(tmp);
+            KeyboardState.SetvkSkipKeyboardState(KeyboardState.vkSkipKeyboardState_Define.Mouse|KeyboardState.vkSkipKeyboardState_Define.LRSHIFTCONTROLMENU);
+            KeyboardState.Init();
+            KeyboardState.SetKeyboardStateCallback(KeyboardStateCallbackFunction);
         }
-        
+
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            KeyboardStatus.UnHook();
-            //KeyboardStatus.stopUpdateKeyStateThread();
-            if (bgWorkerKeyPress.IsBusy)
-                bgWorkerKeyPress.CancelAsync();
+            KeyboardState.Exit();
         }
 
-        private void bgWorkerKeyPress_DoWork(object sender, DoWorkEventArgs e)
+        private void KeyboardStateCallbackFunction()
         {
-            while(!bgWorkerKeyPress.CancellationPending)
-            {
-                string KeyState="Key Press: ";
+            string strKeyPress = "Key Press: ";
 
-                KeyboardStatus.updateKeyState();
-                for (int c=0; c<KeyboardStatus.vkKeyboard.Length; c++)
+            for(int c=0; c<256; c++)
+            {
+                if (KeyboardState.getvkKeyboardState(c))
                 {
-                    if (KeyboardStatus.vkKeyboard[c])
-                    {
-                        if (KeyState.Length != 11) KeyState += " + ";
-                        KeyState += (Keys)c;
-                        KeyState += "[" + c.ToString() + "]";
-                    }
+                    if (strKeyPress.Length != 11)
+                        strKeyPress += " + ";
+                    strKeyPress += (Keys)c;
                 }
-                bgWorkerKeyPress.ReportProgress(0,KeyState);
-                Thread.Sleep(50);
             }
-        }
+            if (lbKeyPress.InvokeRequired)
+                lbKeyPress.Invoke((MethodInvoker)delegate ()
+                {
+                    lbKeyPress.Text = strKeyPress;
+                });
+            else lbKeyPress.Text = strKeyPress;
 
-        private void bgWorkerKeyPress_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            lbKeyPress.Text = e.UserState.ToString();
-        }
-
-        private void KeyboardCallbackFunc()
-        {
-            foreach(KeyboardMacro macro in macroList)
+            foreach(KeyboardMacro macro in keyboardMacroList)
             {
-                if (macro.KeyboardState.SequenceEqual(KeyboardStatus.vkKeyboard))
-                    System.Diagnostics.Process.Start("cmd.exe", "/c " + macro.macroCommand);
+                macro.updatevkKeyboardState();
+                if (macro.previousvkKeyboardStateDown && macro.vkKeyboardStateDown == false)
+                    macro.executeCommand();
             }
         }
     }

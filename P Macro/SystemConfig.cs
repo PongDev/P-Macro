@@ -8,6 +8,6 @@ namespace P_Macro
 {
     class SystemConfig
     {
-        public const string Version = "Alpha 1.0.0";
+        public const string Version = "Alpha 1.0.1";
     }
 }
